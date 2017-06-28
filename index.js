@@ -1,14 +1,21 @@
 function startRecognition(){
 	recognition = new webkitSpeechRecognition();
-	recognition.continuous = true;
+	recognition.continuous = false;
 	recognition.interimResults = false;
+
+	var synth = window.speechSynthesis;
 
 	recognition.onstart = function(event) {
 		console.log("c'est parti")
 	};
 
+	recognition.onaudioend = function(){
+		console.log("pd");
+		startRecognition();
+	}
+
 	recognition.onresult = function(event) {
-		recognition.onend = null;
+		recognition.onaudioend = null;
 
 		var text = "";
 		for(var i = event.resultIndex; i < event.results.length; i++){
@@ -22,7 +29,7 @@ function startRecognition(){
 
 	function send(text){
 		console.log(text);
-		$ajax({
+		$.ajax({
 			type: "POST",
 			url: "https://api.api.ai/v1/query",
 			contentType: "application/json; charset=utf-8",
@@ -33,7 +40,14 @@ function startRecognition(){
 			data: JSON.stringify({query: text, lang: "en", sessionId: "yaydevdiner"}),
 
 			success: function(data){
-				console.log(data);
+				console.log(data.result.speech);
+				recognition.stop();
+				var utterance = new SpeechSynthesisUtterance(data.result.speech);
+				utterance.lang = 'en-US';
+				utterance.onend = function() {
+					startRecognition();
+				};
+				synth.speak(utterance);
 			},
 			error: function(){
 				console.log("error");
